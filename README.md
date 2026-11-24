@@ -1,7 +1,8 @@
 # Gyn-OP Live
 
 Live-Quiz zur Fortbildung „Anatomie und kleine gynäkologische Eingriffe“ (Teil 1), ähnlich wie Mentimeter:
-Die Teilnehmenden scannen einen QR-Code, die Moderation gibt nach jedem Kapitel die Fragen frei und sieht live, wie geantwortet wurde.
+Die Teilnehmenden scannen einen QR-Code, die Moderation gibt die Aufgaben frei und sieht live, wie geantwortet wurde.
+Auf den Handys kann nichts ausgewählt werden: Die freigegebene Aufgabe erscheint von selbst.
 
 - **Moderation:** https://dendak.github.io/gyn-op-live/host.html
 - **Teilnehmende:** https://dendak.github.io/gyn-op-live/ (über den QR-Code oder mit dem Code vom Bildschirm)
@@ -11,20 +12,22 @@ Die Teilnehmenden scannen einen QR-Code, die Moderation gibt nach jedem Kapitel 
 
 1. `host.html` auf dem Präsentationsrechner öffnen. Der QR-Code erscheint.
 2. Die Teilnehmenden scannen den Code. Oben steht, wie viele Geräte dabei sind.
-3. Nach jedem Kapitel den Block auswählen und „freigeben“. Die Fragen erscheinen auf den Handys.
+3. Block auswählen und die Aufgabe „Freigeben“. Sie erscheint sofort auf allen Handys.
 4. Die Auswertung füllt sich live. Mit „Lösung zeigen“ wird die richtige Antwort markiert.
-5. „Neue Sitzung“ beginnt mit leerem Stand und neuem Code.
+5. „Nächste Aufgabe freigeben“ geht zur nächsten. „Ganzen Block freigeben“ gibt alle Aufgaben des Blocks auf einmal frei; die Handys arbeiten sie dann der Reihe nach ab.
+6. „Neue Sitzung“ beginnt mit leerem Stand und neuem Code.
 
 Die Sitzung bleibt beim Neuladen erhalten, auf beiden Seiten.
 
-## Fragen ändern
+## Aufgaben ändern
 
-Alle Fragen stehen in `fragen.js`. Oben in der Datei ist erklärt, wie eine Frage aufgebaut ist.
+Alle 44 Aufgaben stehen in `fragen.js`: Fragen mit vier Antworten, Reihenfolge, Zuordnen, Auswählen, Uhr und Anatomie.
+Oben in der Datei ist erklärt, wie jeder Aufgabentyp aufgebaut ist. Die Reihenfolge in der Datei ist die Reihenfolge der Freigabe.
 
 ## Technik
 
 Statische Seiten auf GitHub Pages, kein eigener Server, kein Build.
-Die Live-Daten laufen über einen öffentlichen MQTT-Broker (`live.js`); übertragen werden nur Fragenummer und gewählte Position, keine Namen.
+Die Live-Daten laufen über einen öffentlichen MQTT-Broker (`live.js`); übertragen werden nur Aufgabennummer und Zahlen, keine Namen.
 Ein öffentlicher Broker hat keine Verfügbarkeitsgarantie. Fällt er aus, bleiben die Aufgaben für die Bühne als Ersatz.
 
 Bibliotheken in `lib/`: [MQTT.js](https://github.com/mqttjs/MQTT.js) 5.10.1 (MIT), [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) 1.4.4 (MIT).

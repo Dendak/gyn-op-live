@@ -1,9 +1,12 @@
-/* Seite für Teilnehmende: Code aus dem QR-Code lesen, auf die Freigabe warten, Fragen beantworten. */
+/* Seite für Teilnehmende: Code aus dem QR-Code lesen und warten.
+   Sobald die Moderation eine Aufgabe freigibt, erscheint sie von selbst. Auswählen kann man nichts. */
 (function () {
   "use strict";
-  var h = Live.h, put = Live.put, BLOCKS = window.BLOCKS;
+  var h = Live.h, put = Live.put, shake = Live.shake, shuffle = Live.shuffle;
+  var IDX = Live.index(window.BLOCKS);
   var app = document.getElementById("app");
   var sess = Live.parseCode(new URLSearchParams(location.search).get("c"));
+  var NS = "http://www.w3.org/2000/svg";
 
   /* ----- ohne Code: Eingabe ----- */
   if (!sess) {
@@ -23,14 +26,13 @@
   }
 
   /* ----- Zustand ----- */
-  var KEY = "gynoplive:" + sess.code;
+  var KEY = "gynoplive2:" + sess.code;
   var saved = Live.store(KEY) || {};
   var pid = saved.pid || Live.rand(8);
   var answers = saved.a && typeof saved.a === "object" ? saved.a : {};
-  var open = [];          // freigegebene Blocknummern
-  var gotState = false;   // schon etwas von der Moderation gehört?
+  var open = [];        // freigegebene Aufgaben in der Reihenfolge der Freigabe
   var online = false;
-  var view = { name: "home" };
+  var cur = null;       // Aufgabe, die gerade auf dem Bildschirm ist (auch während der Auflösung)
 
   function save() { Live.store(KEY, { pid: pid, a: answers }); }
   function publish() { link.send("p/" + pid, { a: answers }); }
@@ -44,112 +46,237 @@
       document.getElementById("dot").className = "dot" + (ok ? " on" : "");
       document.getElementById("conntext").textContent = ok ? "verbunden" : "keine Verbindung";
       if (ok) publish();
-      if (view.name === "home") render();
+      if (cur === null) wait();
     },
     onMessage: function (sub, obj) {
       if (sub !== "state" || !Array.isArray(obj.open)) return;
-      gotState = true;
-      open = obj.open.filter(function (x) { return typeof x === "string"; });
-      if (view.name === "block" && open.indexOf(view.block.nr) < 0) view = { name: "home" };
-      if (view.name === "home") render();
+      open = obj.open.filter(function (x) { return typeof x === "string" && IDX.byId[x]; });
+      /* Nur wechseln, wenn gerade nichts läuft oder die laufende Aufgabe wieder gesperrt wurde. */
+      if (cur === null || (open.indexOf(cur) < 0 && !(cur in answers))) advance();
     }
   });
 
-  /* ----- Hilfen ----- */
-  function progress(b) {
-    var done = 0, right = 0;
-    b.fragen.forEach(function (f, i) {
-      var a = answers[Live.qid(b, i)];
-      if (typeof a === "number") { done++; if (a === f.c) right++; }
-    });
-    return { done: done, right: right, n: b.fragen.length };
-  }
-  function firstOpenQuestion(b) {
-    for (var i = 0; i < b.fragen.length; i++) if (typeof answers[Live.qid(b, i)] !== "number") return i;
-    return b.fragen.length;
+  function advance() {
+    var next = null;
+    for (var i = 0; i < open.length; i++) if (!(open[i] in answers)) { next = open[i]; break; }
+    cur = next;
+    window.scrollTo(0, 0);
+    if (next === null) return wait();
+    var r = IDX.byId[next];
+    TASK[r.item.typ](r, function (v) { answers[r.id] = v; save(); publish(); });
   }
 
-  /* ----- Ansichten ----- */
-  function render() {
-    if (view.name === "block") return renderQuestion();
-    if (view.name === "result") return renderResult();
-    renderHome();
-  }
+  /* ----- gemeinsame Teile ----- */
+  function eyebrow(r) { return h("p", { class: "eyebrow" }, "Block " + r.block.nr + " · " + Live.TYPNAME[r.item.typ]); }
+  function weiter() { return h("div", { class: "row", style: "margin-top:18px" }, h("button", { class: "btn", id: "weiter", onclick: advance }, "Weiter")); }
+  function fb(ok, lead, text) { return h("div", { class: "fb" + (ok ? " good" : ""), role: "status" }, h("strong", {}, lead + " "), text || ""); }
+  var tries = function (n) { return n === 0 ? "ohne Fehlversuch" : n === 1 ? "mit 1 Fehlversuch" : "mit " + n + " Fehlversuchen"; };
+  var sum = function (a) { return a.reduce(function (x, y) { return x + y; }, 0); };
 
-  function renderHome() {
-    var anyOpen = false;
-    var items = BLOCKS.map(function (b) {
-      var isOpen = open.indexOf(b.nr) >= 0, p = progress(b);
-      var finished = p.done === p.n;
-      var todo = isOpen && !finished;
-      if (todo) anyOpen = true;
-      var chip = finished ? h("span", { class: "chip done" }, p.right + " von " + p.n + " richtig")
-        : isOpen ? h("span", { class: "chip open" }, p.done ? "weiter (" + p.done + "/" + p.n + ")" : "Start")
-        : h("span", { class: "chip" }, "gesperrt");
-      return h("li", {}, h("button", { class: "bitem" + (todo ? " go" : ""), disabled: !isOpen, onclick: function () {
-        view = finished ? { name: "result", block: b } : { name: "block", block: b, i: firstOpenQuestion(b) };
-        render(); window.scrollTo(0, 0);
-      } }, h("span", { class: "nr" }, b.nr), h("span", { class: "t" }, b.title), chip));
-    });
-    var lead = !online ? "Die Verbindung wird aufgebaut …"
-      : anyOpen ? "Es sind Fragen freigegeben. Tippen Sie auf den markierten Block."
-      : gotState ? "Im Moment ist nichts Neues freigegeben. Die nächsten Fragen erscheinen hier von selbst."
-      : "Sie sind dabei. Die Fragen erscheinen hier, sobald sie freigegeben werden.";
-    put(app,
-      h("p", { class: "eyebrow" }, "Code " + sess.code),
-      h("h2", {}, anyOpen ? "Los geht’s" : "Bitte warten"),
-      h("p", { class: "muted", style: "margin:0" }, lead),
-      h("ul", { class: "blist" }, items),
-      h("p", { class: "muted", style: "font-size:.85rem;margin-top:22px" }, "Die Antworten sind anonym. Übertragen wird nur, welche Antwort gewählt wurde."));
-  }
-
-  function renderQuestion() {
-    var b = view.block, i = view.i, f = b.fragen[i], id = Live.qid(b, i);
-    if (!f) { view = { name: "result", block: b }; return render(); }
-    var given = answers[id];
-    var fb = h("div", { class: "fb", hidden: true, role: "status" });
-    var next = h("button", { class: "btn", hidden: true, onclick: function () {
-      view = i + 1 < b.fragen.length ? { name: "block", block: b, i: i + 1 } : { name: "result", block: b };
-      render(); window.scrollTo(0, 0);
-    } }, i + 1 < b.fragen.length ? "Weiter" : "Ergebnis");
-    var btns = f.o.map(function (text, k) {
-      return h("button", { class: "popt", onclick: function () { choose(k); } }, h("span", { class: "k" }, "ABCD".charAt(k)), h("span", {}, text));
-    });
-    function show(k) {
-      btns.forEach(function (bt, j) {
-        bt.disabled = true;
-        bt.classList.add(j === f.c ? "ok" : j === k ? "bad" : "dim");
-      });
-      fb.hidden = false;
-      fb.className = "fb" + (k === f.c ? " good" : "");
-      put(fb, h("strong", {}, k === f.c ? "Richtig. " : "Nicht ganz. "), f.e || "");
-      next.hidden = false;
-    }
-    function choose(k) {
-      if (typeof answers[id] === "number") return;
-      answers[id] = k; save(); publish(); show(k);
-    }
-    put(app,
-      h("p", { class: "eyebrow" }, "Block " + b.nr + " · " + b.title),
-      h("p", { class: "count" }, "Frage " + (i + 1) + " von " + b.fragen.length),
-      h("h2", {}, f.q),
-      h("div", { class: "popts" }, btns),
-      fb,
-      h("div", { class: "row", style: "margin-top:18px" }, next,
-        h("button", { class: "btn ghost", onclick: function () { view = { name: "home" }; render(); } }, "Übersicht")));
-    if (typeof given === "number") show(given);
-  }
-
-  function renderResult() {
-    var b = view.block, p = progress(b);
+  function wait() {
+    var n = 0, ok = 0, id;
+    for (id in answers) if (IDX.byId[id] && Live.valid(IDX.byId[id].item, answers[id])) { n++; if (Live.richtig(IDX.byId[id].item, answers[id])) ok++; }
     put(app, h("section", { class: "panel" },
-      h("p", { class: "eyebrow" }, "Block " + b.nr + " · " + b.title),
-      h("p", { class: "score" }, p.right + " von " + p.n),
-      h("p", {}, p.right === p.n ? "Alles richtig." : "richtig beantwortet. Die Auflösung besprechen wir gleich gemeinsam."),
-      h("div", { class: "row", style: "margin-top:18px" },
-        h("button", { class: "btn", onclick: function () { view = { name: "home" }; render(); } }, "Zur Übersicht"),
-        h("button", { class: "btn ghost", onclick: function () { view = { name: "block", block: b, i: 0 }; render(); } }, "Fragen ansehen"))));
+      h("p", { class: "eyebrow" }, "Code " + sess.code),
+      h("h2", {}, "Bitte warten"),
+      h("p", { style: "margin:0" }, online ? "Die nächste Aufgabe erscheint hier von selbst, sobald sie freigegeben wird." : "Die Verbindung wird aufgebaut …"),
+      n ? h("p", { class: "muted", style: "margin:14px 0 0" }, "Bisher " + n + (n === 1 ? " Aufgabe" : " Aufgaben") + ", davon " + ok + " fehlerfrei.") : null),
+      h("p", { class: "muted", style: "font-size:.85rem;margin-top:18px" }, "Die Antworten sind anonym. Übertragen werden nur Zahlen, keine Namen."));
   }
 
-  render();
+  /* ----- Aufgabentypen ----- */
+  var TASK = {};
+
+  TASK.wahl = function (r, done) {
+    var f = r.item;
+    var box = h("div", {});
+    var btns = f.o.map(function (text, k) {
+      return h("button", { class: "popt", onclick: function () {
+        btns.forEach(function (bt, j) { bt.disabled = true; bt.classList.add(j === f.c ? "ok" : j === k ? "bad" : "dim"); });
+        done(k);
+        put(box, fb(k === f.c, k === f.c ? "Richtig." : "Nicht ganz.", f.e), weiter());
+      } }, h("span", { class: "k" }, "ABCD".charAt(k)), h("span", {}, text));
+    });
+    put(app, eyebrow(r), h("h2", {}, f.q), h("div", { class: "popts" }, btns), box);
+  };
+
+  TASK.reihe = function (r, done) {
+    var it = r.item;
+    var steps = it.schritte.map(function (s, i) { return { i: i, t: s[0], d: s[1] }; });
+    var pos = 0, errs = steps.map(function () { return 0; }), pool;
+    do { pool = shuffle(steps); } while (pool.every(function (s, k) { return s.i === k; }));
+    function draw() {
+      var fin = pos >= steps.length;
+      var seq = h("ol", { class: "seq" }, steps.slice(0, pos).map(function (s) { return h("li", {}, h("div", {}, h("b", {}, s.t), fin && s.d ? h("span", {}, s.d) : null)); }),
+        fin ? null : h("li", { class: "slot" }, h("div", {}, "Welcher Schritt kommt jetzt?")));
+      var cards = h("div", { class: "cards" }, pool.filter(function (s) { return s.i >= pos; }).map(function (s) {
+        var b = h("button", { class: "cardbtn", onclick: function () {
+          if (s.i === pos) { pos++; if (pos >= steps.length) done(errs); draw(); }
+          else { errs[pos]++; shake(b); }
+        } }, h("b", {}, s.t), s.d ? h("span", {}, s.d) : null);
+        return b;
+      }));
+      put(app, eyebrow(r), h("h2", {}, it.titel),
+        fin ? null : h("p", { class: "muted", style: "margin:0 0 12px" }, "Tippen Sie die Karten in der Reihenfolge an, in der operiert wird."),
+        seq,
+        fin ? [fb(sum(errs) === 0, "Geschafft,", tries(sum(errs)) + "."), weiter()] : [h("p", { class: "coltitle" }, "Karten"), cards]);
+    }
+    draw();
+  };
+
+  TASK.paare = function (r, done) {
+    var it = r.item;
+    var pairs = it.paare.map(function (p, i) { return { i: i, l: p[0], r: p[1] }; });
+    var order = shuffle(pairs), rights = shuffle(pairs), k = 0, errs = pairs.map(function () { return 0; });
+    function draw() {
+      if (k >= order.length) {
+        put(app, eyebrow(r), h("h2", {}, it.titel),
+          h("ul", { class: "pairs" }, pairs.map(function (p) { return h("li", {}, h("b", {}, p.l), h("span", {}, p.r)); })),
+          fb(sum(errs) === 0, "Alle " + pairs.length + " zugeordnet,", tries(sum(errs)) + "."), weiter());
+        return;
+      }
+      var now = order[k];
+      var solved = order.slice(0, k).map(function (p) { return p.i; });
+      var opts = rights.filter(function (p) { return solved.indexOf(p.i) < 0; }).map(function (p) {
+        var b = h("button", { class: "popt one", onclick: function () {
+          if (p.i === now.i) { k++; if (k >= order.length) done(errs); draw(); window.scrollTo(0, 0); }
+          else { errs[now.i]++; shake(b); }
+        } }, p.r);
+        return b;
+      });
+      put(app, eyebrow(r), h("p", { class: "count" }, it.titel + " · " + (k + 1) + " von " + order.length),
+        h("p", { class: "muted", style: "margin:.6em 0 0" }, it.frage),
+        h("h2", { class: "term" }, now.l),
+        h("div", { class: "popts" }, opts));
+    }
+    draw();
+  };
+
+  TASK.auswahl = function (r, done) {
+    var it = r.item;
+    var all = it.ja.map(function (t, i) { return { i: i, t: t, y: true }; })
+      .concat(it.nein.map(function (t, i) { return { i: it.ja.length + i, t: t, y: false }; }));
+    var shown = shuffle(all), chosen = [], checked = false;
+    function draw() {
+      var chips = shown.map(function (x) {
+        var on = chosen.indexOf(x.i) >= 0, cls = "pchip";
+        if (checked) cls += x.y ? (on ? " ok" : " miss") : (on ? " bad" : "");
+        return h("button", { class: cls, "aria-pressed": String(on), disabled: checked, onclick: function () {
+          if (on) chosen.splice(chosen.indexOf(x.i), 1); else chosen.push(x.i);
+          draw();
+        } }, x.t);
+      });
+      var hit = all.filter(function (x) { return x.y && chosen.indexOf(x.i) >= 0; }).length;
+      var wrong = chosen.length - hit;
+      put(app, eyebrow(r), h("h2", {}, it.titel), h("p", { style: "margin:0 0 14px" }, it.text),
+        h("div", { class: "pchips" }, chips),
+        checked ? [
+          h("div", { class: "legend" }, h("span", {}, h("i", {}), "richtig gewählt"), h("span", {}, h("i", { class: "m" }), "hat gefehlt"), h("span", {}, h("i", { class: "b" }), "gehört nicht dazu")),
+          fb(hit === it.ja.length && wrong === 0, hit + " von " + it.ja.length + " richtig" + (wrong ? ", " + wrong + " zu viel." : "."), it.e), weiter()
+        ] : h("div", { class: "row", style: "margin-top:18px" },
+          h("button", { class: "btn", id: "pruefen", disabled: chosen.length === 0, onclick: function () { checked = true; done(chosen.slice().sort(function (a, b) { return a - b; })); draw(); } }, "Prüfen"),
+          h("span", { class: "muted" }, chosen.length + " gewählt")));
+    }
+    draw();
+  };
+
+  TASK.uhr = function (r, done) {
+    var it = r.item, need = it.richtig.length, chosen = [], checked = false;
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 400 400");
+    svg.setAttribute("class", "clock");
+    svg.setAttribute("role", "group");
+    svg.setAttribute("aria-label", "Portio mit Uhrzeiten von 1 bis 12");
+    svg.innerHTML = '<circle class="portio" cx="200" cy="200" r="88"></circle><ellipse class="os" cx="200" cy="200" rx="24" ry="8"></ellipse><text class="svgnote" x="200" y="246">Portio</text>';
+    var groups = {}, below = h("div", {});
+    function paint() {
+      for (var n = 1; n <= 12; n++) {
+        var on = chosen.indexOf(n) >= 0, cls = "hr";
+        if (checked) cls += it.richtig.indexOf(n) >= 0 ? " ok" : (on ? " bad" : "");
+        else if (on) cls += " on";
+        groups[n].setAttribute("class", cls);
+      }
+      if (checked) {
+        var ok = Live.sameSet(chosen, it.richtig);
+        put(below, fb(ok, ok ? "Richtig." : "Nicht ganz.", it.e), weiter());
+      } else {
+        put(below, h("div", { class: "row", style: "margin-top:10px" },
+          h("button", { class: "btn", id: "pruefen", disabled: chosen.length !== need, onclick: function () { checked = true; done(chosen.slice().sort(function (a, b) { return a - b; })); paint(); } }, "Prüfen"),
+          h("span", { class: "muted" }, need === 1 ? "Eine Position antippen." : chosen.length + " von " + need + " Positionen gewählt.")));
+      }
+    }
+    function make(n) {
+      var ang = (n * 30 - 90) * Math.PI / 180, x = 200 + 150 * Math.cos(ang), y = 200 + 150 * Math.sin(ang);
+      var g = document.createElementNS(NS, "g");
+      g.setAttribute("tabindex", "0"); g.setAttribute("role", "button"); g.setAttribute("aria-label", n + " Uhr");
+      g.innerHTML = '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="31"></circle><text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '">' + n + '</text>';
+      var hit = function () {
+        if (checked) return;
+        var i = chosen.indexOf(n);
+        if (i >= 0) chosen.splice(i, 1);
+        else { if (chosen.length >= need) chosen.shift(); chosen.push(n); }
+        paint();
+      };
+      g.addEventListener("click", hit);
+      g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hit(); } });
+      groups[n] = g; svg.appendChild(g);
+    }
+    for (var n = 1; n <= 12; n++) make(n);
+    put(app, eyebrow(r), h("h2", {}, it.q), h("p", { class: "muted", style: "margin:0" }, "Blick auf die Portio wie in Steinschnittlage."), svg, below);
+    paint();
+  };
+
+  TASK.anatomie = function (r, done) {
+    var ANA = Live.ANA, order = shuffle(ANA.map(function (_, i) { return i; })), k = 0, solved = false, msg = null;
+    var first = ANA.map(function () { return -1; });
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", Live.ANA_VIEWBOX);
+    svg.setAttribute("class", "ana");
+    svg.setAttribute("role", "group");
+    svg.setAttribute("aria-label", "Schematische Zeichnung des inneren Genitales von vorne");
+    svg.innerHTML = Live.ANA_SVG;
+    var top = h("div", {}), below = h("div", {});
+    function draw() {
+      if (k >= order.length) {
+        var wrong = first.filter(function (x, i) { return x !== i; }).length;
+        put(top, h("h2", {}, "Wo liegt was?"));
+        put(below, fb(wrong === 0, "Alle " + ANA.length + " Strukturen gefunden,", (ANA.length - wrong) + " davon beim ersten Versuch."), weiter());
+        return;
+      }
+      var a = ANA[order[k]];
+      put(top, h("p", { class: "count" }, "Struktur " + (k + 1) + " von " + order.length), h("h2", {}, "Tippen Sie auf " + a.art + "."));
+      put(below,
+        solved ? h("div", { class: "info" }, h("h3", {}, a.name),
+          a.note ? h("p", { style: "margin:0" }, a.note) : h("dl", {},
+            h("div", {}, h("dt", {}, "Typische Erkrankungen"), h("dd", {}, a.ill)),
+            h("div", {}, h("dt", {}, "Eingriff"), h("dd", {}, a.op)))) : (msg ? h("div", { class: "fb", role: "status" }, msg) : null),
+        solved ? h("div", { class: "row", style: "margin-top:14px" }, h("button", { class: "btn", id: "next-struct", onclick: function () {
+          k++; solved = false; msg = null;
+          if (k >= order.length) done(first);
+          draw(); window.scrollTo(0, 0);
+        } }, k === order.length - 1 ? "Fertig" : "Nächste Struktur")) : null);
+    }
+    Array.prototype.forEach.call(svg.querySelectorAll(".reg"), function (g) {
+      var idx = -1;
+      ANA.forEach(function (a, i) { if (a.key === g.getAttribute("data-id")) idx = i; });
+      g.setAttribute("tabindex", "0"); g.setAttribute("role", "button"); g.setAttribute("aria-label", "Struktur in der Zeichnung");
+      var hit = function () {
+        if (k >= order.length || solved) return;
+        var want = order[k];
+        if (first[want] < 0) first[want] = idx;
+        if (idx === want) { g.classList.add("found"); solved = true; msg = null; }
+        else {
+          if (!g.classList.contains("found")) { g.classList.add("wrong"); setTimeout(function () { g.classList.remove("wrong"); }, 900); }
+          msg = "Das ist " + ANA[idx].art + ". Versuchen Sie es noch einmal.";
+        }
+        draw();
+      };
+      g.addEventListener("click", hit);
+      g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hit(); } });
+    });
+    put(app, eyebrow(r), top, svg, below);
+    draw();
+  };
+
+  wait();
 })();

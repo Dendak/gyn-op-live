@@ -1,0 +1,91 @@
+/* Aussehen der interaktiven Aufgabentypen (Reihenfolge, Zuordnen, Auswählen, Uhr, Anatomie).
+   Die Farben kommen aus app.css. */
+:root{ --tissue:#EFC3C4; --tissue-2:#DC98A1; --tissue-line:#8E2C50; }
+@media (prefers-color-scheme: dark){ :root{ --tissue:#7B4652; --tissue-2:#A75E6E; --tissue-line:#EA94B1; } }
+
+.coltitle{font-size:.82rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:16px 0 8px}
+
+/* Reihenfolge */
+.seq{list-style:none;counter-reset:s;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.seq li{counter-increment:s;display:grid;grid-template-columns:1.8em minmax(0,1fr);gap:6px;align-items:baseline;padding:8px 12px;border-radius:10px;background:var(--ok-soft);border:1px solid var(--ok)}
+.seq li::before{content:counter(s);font-family:var(--display);font-weight:700;color:var(--ok)}
+.seq li.slot{background:transparent;border:2px dashed var(--line);color:var(--muted)}
+.seq li.slot::before{color:var(--muted)}
+.seq b,.cardbtn b{display:block}
+.seq span,.cardbtn span{display:block;color:var(--muted);font-size:.92em}
+.cards{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.cardbtn{text-align:left;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--surface);cursor:pointer;min-width:0}
+
+/* Zuordnen */
+.term{margin:.15em 0 .7em}
+.popt.one{display:block}
+.pairs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.pairs li{padding:8px 12px;border-radius:10px;background:var(--card)}
+.pairs b,.pairs span{display:block}
+.pairs span{color:var(--muted);font-size:.95em}
+
+/* Auswählen */
+.pchips{display:flex;flex-wrap:wrap;gap:8px}
+.pchip{padding:10px 16px;border-radius:999px;border:2px solid var(--line);background:var(--surface);cursor:pointer;font-size:1.05rem;text-align:left}
+.pchip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pchip:disabled{cursor:default}
+.pchip.ok{border-color:var(--ok);background:var(--ok-soft)}
+.pchip.bad{border-color:var(--bad);background:var(--bad-soft);text-decoration:line-through}
+.pchip.miss{border-color:var(--ok);border-style:dashed;background:transparent}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:.88rem;margin-top:12px}
+.legend i{display:inline-block;width:1em;height:1em;border-radius:50%;vertical-align:-2px;margin-right:6px;border:2px solid var(--ok);background:var(--ok-soft)}
+.legend i.b{border-color:var(--bad);background:var(--bad-soft)}
+.legend i.m{border-style:dashed;background:transparent}
+
+/* Uhr */
+.clock{display:block;width:100%;max-width:420px;height:auto;margin:6px auto 0}
+.clock.big{max-width:min(520px,60vh);margin:0}
+.portio{fill:var(--tissue);stroke:var(--tissue-line);stroke-width:2}
+.os{fill:var(--tissue-2);stroke:var(--tissue-line);stroke-width:1.5}
+.svgnote{fill:var(--muted);font-family:var(--body);font-size:15px;text-anchor:middle}
+.hr{cursor:pointer}
+.hr circle{fill:var(--surface);stroke:var(--line);stroke-width:2}
+.hr text{fill:var(--ink);font-family:var(--display);font-weight:700;font-size:22px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.hr.on circle{fill:var(--accent-soft);stroke:var(--accent);stroke-width:4}
+.hr.ok circle{fill:var(--ok-soft);stroke:var(--ok);stroke-width:4}
+.hr.bad circle{fill:var(--bad-soft);stroke:var(--bad);stroke-width:4}
+.hc circle{fill:var(--card);stroke:var(--line);stroke-width:2}
+.hc.has circle{fill:var(--bar);fill-opacity:.45;stroke:var(--bar)}
+.hc.ok circle{fill:var(--ok-soft);fill-opacity:1;stroke:var(--ok);stroke-width:4}
+.hc text{text-anchor:middle;dominant-baseline:central}
+.hc .cnt{fill:var(--ink);font-family:var(--display);font-weight:700;font-size:22px}
+.hc .lab{fill:var(--muted);font-family:var(--body);font-size:17px}
+
+/* Anatomie */
+.ana{display:block;width:100%;height:auto;margin:4px 0 10px}
+.reg{cursor:pointer}
+.reg .f{fill:var(--tissue);stroke:var(--tissue-line);stroke-width:2;stroke-linejoin:round}
+.reg .s{fill:none;stroke:var(--tissue-2);stroke-width:18;stroke-linecap:round}
+.reg .s2{fill:none;stroke:var(--tissue-2);stroke-width:5;stroke-linecap:round}
+.reg.found .f{fill:var(--ok-soft);stroke:var(--ok)}
+.reg.found .s,.reg.found .s2{stroke:var(--ok)}
+.reg.wrong .f{fill:var(--bad-soft);stroke:var(--bad)}
+.reg.wrong .s,.reg.wrong .s2{stroke:var(--bad)}
+.deco{pointer-events:none}
+.deco.cav{fill:var(--tissue-2);opacity:.75}
+.deco.ln{fill:none;stroke:var(--tissue-line);stroke-width:1.5}
+.deco.dot{fill:var(--surface);stroke:var(--tissue-line);stroke-width:1}
+.info{background:var(--card);border-radius:12px;padding:14px 16px}
+.info h3{font-family:var(--display);font-size:1.3rem;margin:0 0 6px}
+.info dl{margin:0;display:grid;gap:8px}
+.info dt{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.info dd{margin:0}
+
+/* Moderation: Balken je Aufgabentyp */
+.qtab.isopen{border-color:var(--ok)}
+.bar.err .fill{background:var(--bad);opacity:.35}
+.bar.good .fill{background:var(--ok);opacity:.35}
+.bar.wrongitem .body{border-color:var(--bad);border-style:dashed}
+.bar.wrongitem .k{color:var(--bad)}
+.bar.right .k{color:var(--ok)}
+.bars.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 28px}
+@media (max-width: 1100px){ .bars.two{grid-template-columns:minmax(0,1fr)} }
+
+.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-6px)}50%{transform:translateX(6px)}80%{transform:translateX(-3px)}}
+@media (prefers-reduced-motion: reduce){.shake{animation:none;outline:3px solid var(--bad)}}
