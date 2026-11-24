@@ -3,6 +3,7 @@
 ## 2026-11-24
 
 **Hotovo**
+- Uvolňuje se vždy celý blok (kapitola), ne jednotlivé úlohy; telefony pak projdou úlohy bloku samy po sobě. Uživatel to výslovně chtěl takto.
 - Přestavba na přání uživatele: účastníci si nic nevybírají, úloha se na telefonu objeví sama po kliknutí na „Freigeben“. Uvolňuje se po jedné úloze, případně celý blok najednou.
 - Na telefony převedeny i interaktivní úlohy: řazení kroků (5), přiřazování (2), výběr na stůl (4), hodiny na portiu (2), anatomie (1). S 30 otázkami A–D celkem 44 úloh.
 - Statistika pro přednášející podle typu úlohy (kde se lidé spletli, co kdo vybral, rozložení na hodinách). Otestováno lokálně všech 44 úloh na obou brokerech.

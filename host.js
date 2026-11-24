@@ -1,4 +1,4 @@
-/* Seite für die Moderation: QR-Code zeigen, Aufgaben einzeln freigeben, Antworten live auswerten. */
+/* Seite für die Moderation: QR-Code zeigen, Abschnitte (Blöcke) freigeben, Antworten live auswerten. */
 (function () {
   "use strict";
   var h = Live.h, put = Live.put, BLOCKS = window.BLOCKS, IDX = Live.index(BLOCKS);
@@ -59,18 +59,27 @@
     });
   }
 
-  /* ----- Freigabe ----- */
-  function release(id) { if (!isOpen(id)) { S.open.push(id); saveS(); sendState(); } }
-  function lock(id) { var i = S.open.indexOf(id); if (i >= 0) { S.open.splice(i, 1); saveS(); sendState(); } }
-  function releaseNext() {
-    var b = BLOCKS[sel];
-    if (ti + 1 < b.aufgaben.length) { ti++; release(rec(sel, ti).id); render(); }
+  /* ----- Freigabe: immer ein ganzer Block ----- */
+  function blockIds(bi) { return BLOCKS[bi].aufgaben.map(function (_, i) { return rec(bi, i).id; }); }
+  function blockOpen(bi) { return blockIds(bi).every(isOpen); }
+  function releaseBlock(bi) {
+    blockIds(bi).forEach(function (id) { if (!isOpen(id)) S.open.push(id); });
+    saveS(); sendState(); render();
   }
-  function releaseBlock() {
-    var b = BLOCKS[sel], changed = false;
-    b.aufgaben.forEach(function (_, i) { var id = rec(sel, i).id; if (!isOpen(id)) { S.open.push(id); changed = true; } });
-    if (changed) { saveS(); sendState(); }
-    render();
+  function lockBlock(bi) {
+    var ids = blockIds(bi);
+    S.open = S.open.filter(function (id) { return ids.indexOf(id) < 0; });
+    saveS(); sendState(); render();
+  }
+  /* Wie viele Geräte haben im Block etwas beantwortet, wie viele sind fertig? */
+  function blockProgress(bi) {
+    var ids = blockIds(bi), started = 0, finished = 0;
+    parts.forEach(function (a) {
+      var d = ids.filter(function (id) { return a[id] !== undefined; }).length;
+      if (d) started++;
+      if (d === ids.length) finished++;
+    });
+    return { started: started, finished: finished };
   }
 
   /* ----- Auswertung ----- */
@@ -168,46 +177,55 @@
 
   function renderRail() {
     put(rail, BLOCKS.map(function (b, bi) {
-      var n = b.aufgaben.length, o = 0;
-      b.aufgaben.forEach(function (_, i) { if (isOpen(rec(bi, i).id)) o++; });
+      var o = blockOpen(bi), pr = blockProgress(bi);
       return h("li", {}, h("button", { class: "blk", "aria-current": String(bi === sel), onclick: function () { sel = bi; ti = 0; render(); } },
         h("span", { class: "nr" }, b.nr), h("span", {}, b.title),
-        h("span", { class: "meta" }, h("span", { class: "chip" + (o === n ? " done" : o ? " open" : "") }, o + " von " + n + " freigegeben"))));
+        h("span", { class: "meta" }, h("span", { class: "chip" + (o ? " open" : "") }, o ? "freigegeben" : "gesperrt"),
+          pr.started ? pr.finished + " von " + parts.size + " fertig" : null)));
     }));
   }
 
   function renderStage() {
-    var b = BLOCKS[sel];
-    if (ti >= b.aufgaben.length) ti = 0;
-    var r = rec(sel, ti), it = r.item, openNow = isOpen(r.id), st = stats(r), shown = reveal.has(r.id);
-    var allOpen = b.aufgaben.every(function (_, i) { return isOpen(rec(sel, i).id); });
-    var last = ti === b.aufgaben.length - 1;
-    var sol = shown ? solution(it) : null;
+    var b = BLOCKS[sel], n = b.aufgaben.length, openNow = blockOpen(sel), pr = blockProgress(sel);
+    if (ti >= n) ti = 0;
+    var head = h("div", { class: "bhead" },
+      h("div", {}, h("p", { class: "eyebrow" }, "Block " + b.nr + " · " + n + " Aufgaben"), h("h2", {}, b.title)),
+      openNow ? h("div", { class: "row" }, h("span", { class: "chip open" }, "freigegeben"),
+          h("button", { class: "btn ghost", id: "btn-lock", onclick: function () { lockBlock(sel); } }, "Wieder sperren"))
+        : (pr.started ? h("button", { class: "btn", id: "btn-release", onclick: function () { releaseBlock(sel); } }, "Wieder freigeben") : null));
 
+    if (!openNow && !pr.started) {
+      put(stage, h("section", { class: "panel" }, head,
+        h("div", { class: "locked" },
+          h("p", {}, "Dieser Abschnitt ist noch gesperrt. Mit der Freigabe erscheinen die " + n + " Aufgaben nacheinander auf den Handys."),
+          h("button", { class: "btn big", id: "btn-release", onclick: function () { releaseBlock(sel); } }, "Block " + b.nr + " freigeben"))));
+      return;
+    }
+
+    var r = rec(sel, ti), it = r.item, st = stats(r), shown = reveal.has(r.id);
+    var sol = shown ? solution(it) : null;
     var strip = h("div", { class: "strip", role: "tablist", "aria-label": "Aufgaben" }, b.aufgaben.map(function (a, i) {
-      var ri = rec(sel, i), si = stats(ri), o = isOpen(ri.id);
-      return h("button", { class: "qtab" + (o ? " isopen" : ""), role: "tab", "aria-selected": String(i === ti), onclick: function () { ti = i; render(); } },
+      var si = stats(rec(sel, i));
+      return h("button", { class: "qtab", role: "tab", "aria-selected": String(i === ti), onclick: function () { ti = i; render(); } },
         h("b", {}, (i + 1) + " " + Live.TYPNAME[a.typ]),
-        h("span", {}, o || si.n ? (si.n ? pct(si.right, si.n) + " " + word(a) : "freigegeben") : "gesperrt"));
+        h("span", {}, si.n ? pct(si.right, si.n) + " " + word(a) : "noch keine Antwort"));
     }));
 
-    put(stage, h("section", { class: "panel" },
-      h("div", { class: "bhead" },
-        h("div", {}, h("p", { class: "eyebrow" }, "Block " + b.nr + " · " + b.aufgaben.length + " Aufgaben"), h("h2", {}, b.title)),
-        allOpen ? null : h("button", { class: "btn ghost", id: "btn-block", onclick: releaseBlock }, "Ganzen Block freigeben")),
+    put(stage, h("section", { class: "panel" }, head,
+      h("div", { class: "kpis" },
+        h("div", { class: "kpi" }, h("b", {}, parts.size), h("span", {}, "Geräte dabei")),
+        h("div", { class: "kpi" }, h("b", {}, pr.started), h("span", {}, "haben angefangen")),
+        h("div", { class: "kpi" }, h("b", {}, pr.finished), h("span", {}, "sind mit dem Abschnitt fertig"))),
       strip,
-      h("div", { class: "bhead", style: "margin-bottom:0" },
-        h("p", { class: "muted", style: "margin:0;font-variant-numeric:tabular-nums" },
-          "Aufgabe " + (ti + 1) + " von " + b.aufgaben.length + " · " + Live.TYPNAME[it.typ] + " · " + st.n + " von " + parts.size + " Geräten" + (st.n ? " · " + pct(st.right, st.n) + " " + word(it) : "")),
-        h("span", { class: "chip" + (openNow ? " open" : "") }, openNow ? "freigegeben" : "gesperrt")),
+      h("p", { class: "muted", style: "margin:0;font-variant-numeric:tabular-nums" },
+        "Aufgabe " + (ti + 1) + " von " + n + " · " + Live.TYPNAME[it.typ] + " · " + st.n + (st.n === 1 ? " Antwort" : " Antworten") + (st.n ? " · " + pct(st.right, st.n) + " " + word(it) : "")),
       h("h3", { class: "hq" }, Live.titel(it)),
       BODY[it.typ](it, st, shown),
       sol ? h("div", { class: "fb good", role: "status", style: "font-size:clamp(1rem,1.4vw,1.3rem)" }, sol) : null,
       h("div", { class: "row", style: "margin-top:22px" },
-        openNow ? null : h("button", { class: "btn big", id: "btn-release", onclick: function () { release(r.id); render(); } }, "Freigeben"),
-        openNow && !last ? h("button", { class: "btn", id: "btn-next-release", onclick: releaseNext }, "Nächste Aufgabe freigeben →") : null,
-        it.typ === "anatomie" ? null : h("button", { class: "btn" + (openNow && !last ? " ghost" : openNow ? "" : " ghost"), id: "btn-reveal", onclick: toggleReveal }, shown ? "Lösung verbergen" : "Lösung zeigen"),
-        openNow ? h("button", { class: "btn ghost", id: "btn-lock", onclick: function () { lock(r.id); render(); } }, "Wieder sperren") : null)));
+        it.typ === "anatomie" ? null : h("button", { class: "btn", id: "btn-reveal", onclick: toggleReveal }, shown ? "Lösung verbergen" : "Lösung zeigen"),
+        h("button", { class: "btn ghost", id: "btn-prev", disabled: ti === 0, onclick: function () { stepT(-1); } }, "← Aufgabe"),
+        h("button", { class: "btn ghost", id: "btn-next", disabled: ti === n - 1, onclick: function () { stepT(1); } }, "Aufgabe →"))));
   }
 
   function toggleReveal() {
@@ -274,8 +292,7 @@
     if (e.key === "ArrowRight") { stepT(1); e.preventDefault(); }
     else if (e.key === "ArrowLeft") { stepT(-1); e.preventDefault(); }
     else if (k === "l") { if ($("btn-reveal")) toggleReveal(); }
-    else if (k === "f") { release(rec(sel, ti).id); render(); }
-    else if (k === "n") { if (isOpen(rec(sel, ti).id)) releaseNext(); }
+    else if (k === "f") { if (!blockOpen(sel)) releaseBlock(sel); }
   });
 
   /* ----- Start ----- */

@@ -1,8 +1,8 @@
 # Gyn-OP Live
 
 Live-Quiz zur Fortbildung „Anatomie und kleine gynäkologische Eingriffe“ (Teil 1), ähnlich wie Mentimeter:
-Die Teilnehmenden scannen einen QR-Code, die Moderation gibt die Aufgaben frei und sieht live, wie geantwortet wurde.
-Auf den Handys kann nichts ausgewählt werden: Die freigegebene Aufgabe erscheint von selbst.
+Die Teilnehmenden scannen einen QR-Code, die Moderation gibt nach jedem Kapitel den Abschnitt frei und sieht live, wie geantwortet wurde.
+Auf den Handys kann nichts ausgewählt werden: Die Aufgaben des freigegebenen Abschnitts erscheinen von selbst, eine nach der anderen.
 
 - **Moderation:** https://dendak.github.io/gyn-op-live/host.html
 - **Teilnehmende:** https://dendak.github.io/gyn-op-live/ (über den QR-Code oder mit dem Code vom Bildschirm)
@@ -12,10 +12,9 @@ Auf den Handys kann nichts ausgewählt werden: Die freigegebene Aufgabe erschein
 
 1. `host.html` auf dem Präsentationsrechner öffnen. Der QR-Code erscheint.
 2. Die Teilnehmenden scannen den Code. Oben steht, wie viele Geräte dabei sind.
-3. Block auswählen und die Aufgabe „Freigeben“. Sie erscheint sofort auf allen Handys.
-4. Die Auswertung füllt sich live. Mit „Lösung zeigen“ wird die richtige Antwort markiert.
-5. „Nächste Aufgabe freigeben“ geht zur nächsten. „Ganzen Block freigeben“ gibt alle Aufgaben des Blocks auf einmal frei; die Handys arbeiten sie dann der Reihe nach ab.
-6. „Neue Sitzung“ beginnt mit leerem Stand und neuem Code.
+3. Nach jedem Kapitel den Block auswählen und „Block … freigeben“ klicken. Die Aufgaben des Abschnitts erscheinen nacheinander auf den Handys.
+4. Die Auswertung füllt sich live. Oben die Aufgaben des Abschnitts zum Durchblättern, „Lösung zeigen“ markiert die richtige Antwort.
+5. „Neue Sitzung“ beginnt mit leerem Stand und neuem Code.
 
 Die Sitzung bleibt beim Neuladen erhalten, auf beiden Seiten.
 

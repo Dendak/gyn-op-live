@@ -6,7 +6,7 @@ Rozhraní je německy, s uživatelem se mluví česky.
 ## Struktura
 
 - `index.html` + `teilnehmen.js`: stránka pro účastníky (telefon), kód přichází v `?c=`.
-- `host.html` + `host.js`: stránka pro přednášející: QR kód, uvolňování úloh po jedné (nebo celého bloku), živá statistika podle typu úlohy.
+- `host.html` + `host.js`: stránka pro přednášející: QR kód, uvolňování vždy celého bloku (přání uživatele: ne po jedné otázce), živá statistika podle typu úlohy.
 - `live.js`: společné: spojení přes veřejný MQTT broker, formát kódu, kontrola a vyhodnocení odpovědí (`valid`, `richtig`), kresba anatomie.
 - `fragen.js`: všech 44 úloh. Typy: `wahl`, `reihe`, `paare`, `auswahl`, `uhr`, `anatomie`; popis nahoře v souboru.
 - `app.css` společný vzhled, `aufgaben.css` vzhled interaktivních typů úloh.
