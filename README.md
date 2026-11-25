@@ -20,7 +20,7 @@ Die Sitzung bleibt beim Neuladen erhalten, auf beiden Seiten.
 
 ## Aufgaben ändern
 
-Alle 44 Aufgaben stehen in `fragen.js`: Fragen mit vier Antworten, Reihenfolge, Zuordnen, Auswählen, Uhr und Anatomie.
+Alle 43 Aufgaben stehen in `fragen.js`: Fragen mit vier Antworten, Reihenfolge, Zuordnen, Auswählen, Uhr und Anatomie.
 Oben in der Datei ist erklärt, wie jeder Aufgabentyp aufgebaut ist. Die Reihenfolge in der Datei ist die Reihenfolge der Freigabe.
 
 ## Technik

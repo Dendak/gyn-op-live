@@ -47,10 +47,7 @@ window.BLOCKS = [
       e: "Verschließt sich der Gang, entsteht zuerst eine schmerzlose Zyste, bei Infektion ein Bartholin-Abszess. Neben der Urethra liegen die Skene-Gänge." },
     { typ: "wahl", q: "Was passiert bei einer Hymenalatresie ab der Menarche?",
       o: ["Die Regelblutung ist besonders stark", "Es bildet sich ein Bartholin-Abszess", "Die Harnröhre verschließt sich", "Das Menstrualblut staut sich in der Vagina"], c: 3,
-      e: "Das heißt Hämatokolpos. Die Mädchen haben zyklische Unterbauchschmerzen ohne sichtbare Blutung." },
-    { typ: "wahl", q: "Warum entstehen an der Vulva leicht Hämatome?",
-      o: ["Wegen der ausgeprägten venösen Plexus", "Weil die Haut dort besonders dick ist", "Weil dort keine Lymphgefäße liegen", "Weil die Nähte nicht resorbierbar sind"], c: 0,
-      e: "Für den OP: bipolare Koagulation bereithalten, feine resorbierbare Nähte, auf Nachblutung achten." }
+      e: "Das heißt Hämatokolpos. Die Mädchen haben zyklische Unterbauchschmerzen ohne sichtbare Blutung." }
   ]},
   { nr: "03", title: "Eingriffe an Vulva und Vagina", aufgaben: [
     { typ: "reihe", titel: "Marsupialisation", schritte: [

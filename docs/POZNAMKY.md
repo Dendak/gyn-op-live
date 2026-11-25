@@ -1,5 +1,13 @@
 # Poznámky
 
+## 2026-11-25
+
+**Hotovo**
+- Na přání uživatele odstraněna 4. otázka v bloku 02 („Warum entstehen an der Vulva leicht Hämatome?“). Blok 02 má teď 3 otázky, celkem 43 úloh (29 otázek A–D).
+- Uživatel bude uvolňovat bloky ručně na `host.html` v Edgi; do PowerPointu se nic nevkládá.
+
+**Otevřené a další krok:** beze změny, viz 2026-11-24.
+
 ## 2026-11-24
 
 **Hotovo**
